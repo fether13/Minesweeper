@@ -520,17 +520,26 @@ public class MainWindow {
 
 	//CHOOSE THE COLOR OF A SQUARE
 	private Color calculateColor(int x, int y) {
-		return switch (grid.mat[y][x]) {
-			case 1 -> color1;
-			case 2 -> color2;
-			case 3 -> color3;
-			case 4 -> color4;
-			case 5 -> color5;
-			case 6 -> color6;
-			case 7 -> color7;
-			case 8 -> color8;
-			default -> Color.WHITE;
-		};
+		switch (grid.mat[y][x]) {
+			case 1:
+				return color1;
+			case 2:
+				return color2;
+			case 3:
+				return color3;
+			case 4:
+				return color4;
+			case 5:
+				return color5;
+			case 6:
+				return color6;
+			case 7:
+				return color7;
+			case 8:
+				return color8;
+			default:
+				return Color.WHITE;
+		}
 	}
 
 	//END THE GAME
