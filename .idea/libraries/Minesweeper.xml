@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Minesweeper">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/out/artifacts/JavaReworki_jar/Minesweeper.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
