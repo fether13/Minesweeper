@@ -1,3 +1,4 @@
+import java.awt.event.*;
 import java.util.Random;
 import java.util.Vector;
 
@@ -9,10 +10,6 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -32,7 +29,7 @@ import javax.swing.border.LineBorder;
 
 public class MainWindow {
 
-	public static int WIDTH = 4, HEIGHT = 4, MINES = 2, TILE_SIZE = 30;
+	public static int WIDTH = 9, HEIGHT = 9, MINES = 10, TILE_SIZE = 30;
 	public boolean playing = false;
 	final int TILE_GAP = 5;
 	final int MAX_WIDTH = 50, MAX_HEIGHT = 20;
@@ -43,6 +40,14 @@ public class MainWindow {
 	Color gray3 = Color.decode("#666666");
 	Color gray4 = Color.decode("#4A4A4A");
 	Color gray5 = Color.decode("#333333");
+	Color color1 = Color.decode("#0290F5");
+	Color color2 = Color.decode("#CF780A");
+	Color color3 = Color.decode("#CFC400");
+	Color color4 = Color.decode("#00CF1B");
+	Color color5 = Color.decode("#00C3F2");
+	Color color6 = Color.decode("#E100FA");
+	Color color7 = Color.decode("#00EB91");
+	Color color8 = Color.decode("#D65B00");
 
 	public JFrame window;
 	/////
@@ -52,9 +57,10 @@ public class MainWindow {
 	/////
 
 	// Components that need to be global for functional reasons
-	private JButton[][] buttons; // list of every button in the field
+	private Square[][] buttons; // list of every button in the field
 	private final ButtonGroup difficultyGroup = new ButtonGroup();
 	private JButton confirmButton;
+	private int[][] minesGlobal;
 	private JRadioButton easy, medium, hard, custom;
 	private JTextField heightTF, widthTF, minesTF;
 	private Font customFont;
@@ -112,9 +118,10 @@ public class MainWindow {
 		interfacePanel.setBackground(gray4);
 
 		grid = new Grid(); //reset the grid everytime the interface is rebuilt
-		score = -1;
+		minesGlobal = new int[MINES][2];
+		score = 0;
 
-		buttons = new JButton[HEIGHT][WIDTH]; // renew the button array
+		buttons = new Square[HEIGHT][WIDTH]; // renew the button array
 		if (WIDTH >= 32 || HEIGHT >= 16)
 			TILE_SIZE = 25;
 		else
@@ -166,37 +173,7 @@ public class MainWindow {
 		quitButton.addActionListener(e -> window.dispose());
 		quitPanel.add(quitButton);
 
-		// I'll also add the fullscreen toggle here
-		JButton fullscreenButton = generateMenuButton("");
-		ImageIcon fsIcon = new ImageIcon("src/assets/fs.png");
-		ImageIcon sfIcon = new ImageIcon("src/assets/sf.png");
-
-		fullscreenButton.setFont(customFont.deriveFont(13f));
-		fullscreenButton.setIcon(fsIcon);
-		fullscreenButton.setBorder(new EmptyBorder(5, 5, 5, 5));
-		fullscreenButton.setAlignmentX(JButton.CENTER);
-
-		fullscreenButton.addActionListener(new ActionListener() {
-			boolean fs = false;
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (fs) {
-					window.setExtendedState(JFrame.NORMAL);
-					window.pack();
-					fs = false;
-					fullscreenButton.setIcon(fsIcon);
-				} else {
-					window.setExtendedState(JFrame.MAXIMIZED_BOTH);
-					fs = true;
-					fullscreenButton.setIcon(sfIcon);
-				}
-				// TODO Auto-generated method stub
-			}
-		});
-
 		quitPanel.add(Box.createRigidArea(new Dimension(0, 5)));
-		quitPanel.add(fullscreenButton);
 
 		//display the score
 		scoreLabel = new JLabel();
@@ -471,6 +448,7 @@ public class MainWindow {
 	private Square generateSquare(int x, int y) {
 		Square square = new Square(x, y);
 		square.setPreferredSize(new Dimension(TILE_SIZE, TILE_SIZE));
+		square.setFont(customFont.deriveFont(15f));
 		square.setBackground(gray5);
 		square.setRolloverEnabled(false);
 		square.setFocusPainted(false);
@@ -480,45 +458,98 @@ public class MainWindow {
 		CompoundBorder compound = new CompoundBorder(line, empty); //more precise border
 		square.setBorder(compound); // set a more precise border
 
+
 		square.addActionListener(e -> {
 
-			//generate the grid when the first is clicked
-			if (!playing) {
-				playing = true;
-				grid.populate(square.x, square.y);
-				square.doClick();
-			}
-			square.setEnabled(false);
-			//if the game already started
-			if(playing) {
-				square.setText(grid.display(square.x, square.y));
-				grid.click(square.x, square.y);
-			}
 
-			//very ugly code to click the adjacent non-bomb squares
-			if (grid.mat[square.y][square.x]==0) { //if it's a 0 keep uncovering
-				for (int j = -1; j <= 1; j++) {
-					for (int k = -1; k <= 1; k++)
-						if (square.y + j >= 0 && square.y + j < HEIGHT && square.x + k >= 0 && square.x + k < WIDTH
-								&& grid.mat[square.y + j][square.x + k] != -1) {
-							if(j==0 || k==0) //always click horizontally and vertically
-								buttons[square.y + j][square.x + k].doClick();
-							else {
-								if(grid.mat[square.y + j][square.x + k]>0) //only click diagonally if it's not a 0
-									buttons[square.y + j][square.x + k].doClick();
-							}
-						}
+		});
+
+		square.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				if (e.getButton() == MouseEvent.BUTTON3) { //right click
+					square.toggleFlag();
+
+				} else if(!square.isFlagged) { //left click
+					//generate the grid when the first is clicked
+					if (!playing) {
+						playing = true;
+						grid.populate(square.x, square.y);
+						square.doClick();
+					}
+
+					if(grid.mat[square.y][square.x] != -1 && !square.isClicked) {
+						uncoverSquares(square);
+					}
+
+					scoreLabel.setText("SCORE: " + score);
+					if(score == WIDTH * HEIGHT - MINES) {
+						endGame(true);
+					}
+					if(grid.mat[square.y][square.x]==-1)
+						endGame(false);
 				}
 			}
-
-			scoreLabel.setText("SCORE: " + score);
-			if(score == WIDTH * HEIGHT - MINES) {
-				endGame(true);
-			}
-			if(grid.mat[square.y][square.x]==-1)
-				endGame(false);
 		});
 		return square;
+	}
+
+	//Recursively uncover the squares
+	private void uncoverSquares(Square square) {
+
+		if (grid.mat[square.y][square.x] != -1) {
+			square.setContentAreaFilled(false);
+		}
+		if (square.isClicked)
+			return;
+
+		square.isClicked = true;
+		score++;
+
+		square.setText(grid.display(square.x, square.y));
+		square.setForeground(calculateColor(square.x, square.y));
+
+		//very ugly code to click the adjacent non-bomb squares
+		if (grid.mat[square.y][square.x]==0) { //if it's a 0 keep uncovering
+			for (int j = -1; j <= 1; j++) {
+				for (int k = -1; k <= 1; k++)
+					if (square.y + j >= 0 && square.y + j < HEIGHT && square.x + k >= 0 && square.x + k < WIDTH
+							&& grid.mat[square.y + j][square.x + k] != -1 &&
+							!buttons[square.y + j][square.x + k].isClicked  && !(j==0 && k==0)
+							&& !buttons[square.y + j][square.x + k].isFlagged) {
+						if(j==0 || k==0) //always click horizontally and vertically
+							uncoverSquares(buttons[square.y + j][square.x + k]);
+						else {
+							if(grid.mat[square.y + j][square.x + k]>0 ) //only click diagonally if it's not a 0
+								uncoverSquares(buttons[square.y + j][square.x + k]);
+						}
+					}
+			}
+		}
+
+	}
+
+	//CHOOSE THE COLOR OF A SQUARE
+	private Color calculateColor(int x, int y) {
+		switch (grid.mat[y][x]) {
+			case 1:
+				return color1;
+			case 2:
+				return color2;
+			case 3:
+				return color3;
+			case 4:
+				return color4;
+			case 5:
+				return color5;
+			case 6:
+				return color6;
+			case 7:
+				return color7;
+			case 8:
+				return color8;
+			default:
+				return Color.WHITE;
+		}
 	}
 
 	//END THE GAME
@@ -531,12 +562,8 @@ public class MainWindow {
 		} else {
 			winLabel.setText("GAME OVER");
 			winLabel.setForeground(Color.RED);
-			for(int i=0; i<HEIGHT; i++) {
-				for(int j=0; j<WIDTH; j++) {
-					if(grid.mat[i][j]==-1) {
-						buttons[i][j].setText("-1");
-					}
-				}
+			for(int i=0; i<MINES; i++) {
+				buttons [minesGlobal[i][1]][minesGlobal[i][0]].setText("X");
 			}
 		}
 
@@ -620,11 +647,35 @@ public class MainWindow {
 	}
 
 	class Square extends JButton {
-		int x, y; 
+		int x, y;
+		boolean isFlagged, isClicked;
 		public Square(int x, int y) {
 			this.x = x;
 			this.y = y;
+			isFlagged=false;
+			isClicked=false;
 		}
+
+		public void click() {
+			if (!isClicked) {
+				isClicked = true;
+				score++;
+			}
+		}
+
+		public void toggleFlag() {
+			if (isFlagged) {
+				isFlagged = false;
+				this.setText("");
+				this.setBackground(gray5);
+			} else {
+				isFlagged = true;
+				this.setText("F");
+				this.setBackground(gray2);
+			}
+		}
+
+
 	}
 
 	///////////////////////////////////////
@@ -658,14 +709,19 @@ public class MainWindow {
 				selection.add(i);
 			}
 
-			//remove squares adjacent to the click from the possible bomb coords
-			for (int i = -1; i <= 1; i++) {
-				for (int j = -1; j <= 1; j++) {
-					if (y + i >= 0 && y + i < HEIGHT && x + j >= 0 && x + j < WIDTH) {
-						selection.removeElement((y + i) * WIDTH + (x + j));
+			//only remove the 9 adjacent squares if there's enough room for it
+			if(WIDTH*HEIGHT-MINES >= 9) {
+				for (int i = -1; i <= 1; i++) {
+					for (int j = -1; j <= 1; j++) {
+						if (y + i >= 0 && y + i < HEIGHT && x + j >= 0 && x + j < WIDTH) {
+							selection.removeElement((y + i) * WIDTH + (x + j));
+						}
 					}
 				}
+			} else {
+				selection.removeElement(y * WIDTH + x);
 			}
+
 
 			//
 			for (int i = 0; i < MINES; i++) {
@@ -678,6 +734,8 @@ public class MainWindow {
 				tempy = mines[i] / WIDTH;
 				tempx = mines[i] % WIDTH;
 				mat[tempy][tempx] = -1;
+				minesGlobal[i] = new int[]{tempx, tempy};
+
 			}
 			for (int i = 0; i < MINES; i++) {
 				tempy = mines[i] / WIDTH;
@@ -694,15 +752,18 @@ public class MainWindow {
 			}
 		}
 
-		public void click(int x, int y){
-			buttons[y][x].setEnabled(false);
-			if(mat[y][x] != -1)
-				score++;
-		}
-
 		public String display(int x, int y) {
-			String value = "" + mat[y][x];
-			return value;
+
+			if (buttons[y][x].isFlagged)
+				return "F";
+
+			else if(mat[y][x] == 0) {
+				return "";
+			} else if (mat[y][x] == -1) {
+				return "X";
+			}
+
+			return ""+ mat[y][x];
 		}
 
 	}
