@@ -456,7 +456,7 @@ public class MainWindow {
 					return;
 				}
 
-				if (e.getButton() == MouseEvent.BUTTON3 && square.isClicked) { //right click
+				if (e.getButton() == MouseEvent.BUTTON3 && !square.isClicked) { //right click
 					square.toggleFlag();
 
 				} else if(!square.isFlagged) { //left click
