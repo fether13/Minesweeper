@@ -16,7 +16,6 @@ import java.io.InputStream;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -101,6 +100,7 @@ public class MainWindow {
 	private void handleFont() {
 		InputStream is = getClass().getResourceAsStream("/assets/BakbakOne-Regular.ttf");
 		try {
+			assert is != null;
 			customFont = Font.createFont(Font.TRUETYPE_FONT, is);
 		} catch (FontFormatException | IOException e) {
 			// TODO Auto-generated catch block
@@ -379,15 +379,6 @@ public class MainWindow {
 		button.setFocusPainted(false);
 		button.setFont(customFont.deriveFont(14f));
 
-		//EmptyBorder empty = new EmptyBorder(1, 1, 1, 1);
-		//LineBorder line = new LineBorder(gray1, 1);
-		//CompoundBorder compound = new CompoundBorder(line, empty);
-
-		// button.setBorder(compound);
-
-		// button.setMargin(new Insets(3,15,3,15));
-		// button.setBorder(new LineBorder(gray1, 1));
-
 		return button;
 	}
 
@@ -458,15 +449,14 @@ public class MainWindow {
 		CompoundBorder compound = new CompoundBorder(line, empty); //more precise border
 		square.setBorder(compound); // set a more precise border
 
-
-		square.addActionListener(e -> {
-
-
-		});
-
 		square.addMouseListener(new MouseAdapter() {
 			public void mouseReleased(MouseEvent e) {
-				if (e.getButton() == MouseEvent.BUTTON3) { //right click
+
+				if (!square.isEnabled()) {
+					return;
+				}
+
+				if (e.getButton() == MouseEvent.BUTTON3 && square.isClicked) { //right click
 					square.toggleFlag();
 
 				} else if(!square.isFlagged) { //left click
@@ -530,26 +520,17 @@ public class MainWindow {
 
 	//CHOOSE THE COLOR OF A SQUARE
 	private Color calculateColor(int x, int y) {
-		switch (grid.mat[y][x]) {
-			case 1:
-				return color1;
-			case 2:
-				return color2;
-			case 3:
-				return color3;
-			case 4:
-				return color4;
-			case 5:
-				return color5;
-			case 6:
-				return color6;
-			case 7:
-				return color7;
-			case 8:
-				return color8;
-			default:
-				return Color.WHITE;
-		}
+		return switch (grid.mat[y][x]) {
+			case 1 -> color1;
+			case 2 -> color2;
+			case 3 -> color3;
+			case 4 -> color4;
+			case 5 -> color5;
+			case 6 -> color6;
+			case 7 -> color7;
+			case 8 -> color8;
+			default -> Color.WHITE;
+		};
 	}
 
 	//END THE GAME
@@ -656,13 +637,6 @@ public class MainWindow {
 			isClicked=false;
 		}
 
-		public void click() {
-			if (!isClicked) {
-				isClicked = true;
-				score++;
-			}
-		}
-
 		public void toggleFlag() {
 			if (isFlagged) {
 				isFlagged = false;
@@ -698,7 +672,7 @@ public class MainWindow {
 
 		public void populate(int x, int y) {
 			Random random = new Random();
-			Vector<Integer> selection = new Vector<Integer>();
+			Vector<Integer> selection = new Vector<>();
 
 			int index;
 			int[] mines = new int[MINES];
